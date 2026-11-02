@@ -34,7 +34,7 @@ banking/
 ├── .gitignore                          # .env, secrets/, session.json, data/
 ├── secrets/private.pem + cert.pem      # RSA-nøgle (hemmelig) + certifikat (uploades)
 ├── eb_client.py                        # JWT-generering + get()/post(); `uv run eb_client.py` = smoke test
-├── authorize.py                        # starter /auth, fanger code på localhost:8787, opretter session
+├── authorize.py                        # starter /auth, du indsætter redirect-URL med code, opretter session
 ├── fetch_transactions.py               # henter posteringer + saldi og gemmer JSON
 ├── session.json                        # gemt session_id + konti (genereres)
 └── data/                               # output: <iban>_<fra>_<til>.json
@@ -43,17 +43,17 @@ banking/
 | Komponent | Ansvar |
 |---|---|
 | `eb_client.py` | Bygger RS256-JWT (`iss=enablebanking.com`, `aud=api.enablebanking.com`, `kid=<app_id>`, 1 times TTL) og udstiller `get()`/`post()`. Kørt direkte kalder den `GET /application` som smoke test. |
-| `authorize.py` | Kalder `POST /auth` for Danske Bank med 90 dages adgang, åbner URL i browseren, lytter på `http://localhost:8787/callback` efter `code`, kalder `POST /sessions`, gemmer `session.json`. |
+| `authorize.py` | Kalder `POST /auth` for Danske Bank med 180 dages adgang (Danske Banks maksimum), åbner URL i browseren, beder dig indsætte den URL du lander på (`https://localhost:8787/callback?code=...`), kalder `POST /sessions`, gemmer `session.json`. |
 | `fetch_transactions.py` | Læser `session.json`, tjekker at sessionen stadig er `AUTHORIZED`, henter transaktioner (`--days`, `--from`, `--to`) med paginering via `continuation_key` samt saldi, og skriver én JSON-fil pr. konto i `data/`. |
 
 ## 3. Nøgler og hemmeligheder – hvad skal vi bruge, og hvor kommer de fra
 
 | Hvad | Hvor fra | Bruges til |
 |---|---|---|
-| **RSA privat nøgle** (`secrets/private.pem`) | ✅ Genereret med `openssl genrsa 2048` | Signere JWT |
-| **Selvsigneret certifikat** (`secrets/cert.pem`) | ✅ Genereret, CN=allan-banking, gyldigt til 2036 | Uploades til Enable Banking ved app-registrering |
-| **Application ID** (UUID) | Vises i Control Panel efter upload af certifikat | `kid` i JWT-headeren |
-| **Redirect URL** | Vælges af os, fx `http://localhost:8787/callback`; skal registreres på appen | Modtage `code` efter bank-login |
+| **RSA privat nøgle** (`secrets/private.pem`) | ✅ Genereret i browseren ved app-registrering (4096 bit) og downloadet | Signere JWT |
+| **Certifikat** | ✅ Genereret af Enable Banking sammen med nøglen (vores eget `openssl`-nøglepar ligger ubrugt i `secrets/unused/`) | Registreret på appen |
+| **Application ID** (UUID) | ✅ `e614711a-610a-4cff-98f2-cf38872beaef` (app "AvzBank") | `kid` i JWT-headeren |
+| **Redirect URL** | `https://localhost:8787/callback` – Enable Banking kræver `https://`; skal registreres på appen | Modtage `code` efter bank-login (browseren kan ikke vise siden, men `code` står i adresselinjen) |
 | **Session ID** + **account IDs** | Returneres af `POST /sessions` – gemmes lokalt i `session.json` | Alle efterfølgende datakald |
 
 Der er altså ingen "API-key" at kopiere – autentificeringen er nøglepar + app-id. Den private nøgle må aldrig deles eller committes.
@@ -65,7 +65,7 @@ Der er altså ingen "API-key" at kopiere – autentificeringen er nøglepar + ap
    - Environment: **PRODUCTION**
    - Navn + beskrivelse (fx "Personlig kontoudtræk")
    - Upload `cert.pem` (jeg genererer den – du uploader)
-   - Redirect URL: `http://localhost:8787/callback` (eller hvad vi bliver enige om)
+   - Redirect URL: `https://localhost:8787/callback` (skal være `https://` – `http://` afvises med "unsupported schema")
    - Produktion kræver også `gdpr_email`, `privacy_url` og `terms_url` – for privat brug kan det være din egen e-mail og en simpel side/URL (fx et GitHub-gist eller GitHub Pages).
    - Notér **Application ID** og læg det i `.env`.
 3. **Aktivér appen ved at linke dine egne konti**: Klik "Activate by linking accounts" i Control Panel → vælg din bank → log ind med **MitID** → godkend. Status skifter fra *Inactive* til *Active (restricted)*. Gentag for hver bank, du vil hente fra.
@@ -77,7 +77,7 @@ Der er altså ingen "API-key" at kopiere – autentificeringen er nøglepar + ap
 
 - Generere nøglepar og certifikat med `openssl`.
 - Sætte projektet op (venv, dependencies, `.gitignore`, `.env.example`).
-- Skrive `eb_client.py`, `authorize.py` og `fetch_transactions.py` inkl. lokal callback-server, paginering, fejlhåndtering og CSV/JSON/SQLite-output.
+- Skrive `eb_client.py`, `authorize.py` og `fetch_transactions.py` inkl. paginering og JSON-output.
 - Teste autentificeringen mod API'et (`GET /application` returnerer app-info og er en god "smoke test" uden bank-login) så snart du har lagt Application ID i `.env`.
 - Verificere end-to-end sammen med dig, når du har gennemført MitID-login.
 
@@ -87,12 +87,12 @@ Der er altså ingen "API-key" at kopiere – autentificeringen er nøglepar + ap
 |---|---|---|---|
 | 1 | AI | Generér `secrets/private.pem` + `secrets/cert.pem`, opret projekt (uv, Python 3.14) | ✅ |
 | 2 | AI | Skriv `eb_client.py`, `authorize.py`, `fetch_transactions.py`; verificér JWT-format mod API | ✅ |
-| 3 | Du | Opret EB-konto, registrér PRODUCTION-app med `secrets/cert.pem` og redirect-URL `http://localhost:8787/callback`, notér App ID | ⏳ |
-| 4 | Du | `cp .env.example .env` og indsæt App ID | ⏳ |
-| 5 | AI/du | Smoke test: `uv run eb_client.py` skal vise appens navn og status | ⏳ |
-| 6 | Du | "Activate by linking accounts" med MitID i Control Panel | ⏳ |
-| 7 | Du | `uv run authorize.py` → log ind med MitID → `session.json` oprettes | ⏳ |
-| 8 | Du | `uv run fetch_transactions.py --days 90` → JSON i `data/` | ⏳ |
+| 3 | Du | Opret EB-konto, registrér PRODUCTION-app med `secrets/cert.pem` og redirect-URL `https://localhost:8787/callback`, notér App ID | ✅ |
+| 4 | Du | `cp .env.example .env` og indsæt App ID | ✅ |
+| 5 | AI/du | Smoke test: `uv run eb_client.py` skal vise appens navn og status | ✅ (AvzBank, PRODUCTION, inaktiv) |
+| 6 | Du | "Activate by linking accounts" med MitID i Control Panel | ✅ |
+| 7 | Du | `uv run authorize.py` → log ind med MitID → kopiér adressen du lander på ind i terminalen → `session.json` oprettes | ✅ (session gyldig til 2027-01-31) |
+| 8 | Du | `uv run fetch_transactions.py --days 90` → JSON i `data/` | ✅ (7 konti, 487 posteringer) |
 
 ## 7. Daglig brug
 

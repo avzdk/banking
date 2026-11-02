@@ -15,7 +15,7 @@ load_dotenv()
 
 APP_ID = os.environ["EB_APP_ID"]
 KEY_PATH = Path(os.environ.get("EB_KEY_PATH", "secrets/private.pem"))
-REDIRECT_URL = os.environ.get("EB_REDIRECT_URL", "http://localhost:8787/callback")
+REDIRECT_URL = os.environ.get("EB_REDIRECT_URL", "https://localhost:8787/callback")
 
 
 def make_jwt() -> str:

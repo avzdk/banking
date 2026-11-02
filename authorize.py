@@ -4,39 +4,14 @@ import json
 import uuid
 import webbrowser
 from datetime import datetime, timedelta, timezone
-from http.server import BaseHTTPRequestHandler, HTTPServer
 from pathlib import Path
 from urllib.parse import parse_qs, urlparse
 
 import eb_client
 
 ASPSP = {"name": "Danske Bank", "country": "DK"}
-ACCESS_DAYS = 90
+ACCESS_DAYS = 180
 SESSION_FILE = Path("session.json")
-
-
-class CallbackHandler(BaseHTTPRequestHandler):
-    code: str | None = None
-
-    def do_GET(self):
-        query = parse_qs(urlparse(self.path).query)
-        CallbackHandler.code = query.get("code", [None])[0]
-        self.send_response(200)
-        self.send_header("Content-Type", "text/html; charset=utf-8")
-        self.end_headers()
-        self.wfile.write("<h2>Tak – du kan lukke dette vindue og gå tilbage til terminalen.</h2>".encode())
-
-    def log_message(self, *args):
-        pass
-
-
-def wait_for_code() -> str:
-    parsed = urlparse(eb_client.REDIRECT_URL)
-    server = HTTPServer((parsed.hostname, parsed.port), CallbackHandler)
-    while CallbackHandler.code is None:
-        server.handle_request()
-    server.server_close()
-    return CallbackHandler.code
 
 
 def main():
@@ -54,9 +29,10 @@ def main():
     print("Åbn dette link i din browser og log ind med MitID:")
     print(auth["url"])
     webbrowser.open(auth["url"])
-    print(f"Venter på svar på {eb_client.REDIRECT_URL} ...")
+    print(f"\nNår du er færdig, sendes du til {eb_client.REDIRECT_URL} – siden kan ikke vises, det er forventet.")
+    redirected_url = input("Kopiér hele adressen fra browserens adresselinje og indsæt den her: ").strip()
 
-    code = wait_for_code()
+    code = parse_qs(urlparse(redirected_url).query)["code"][0]
     session = eb_client.post("/sessions", {"code": code})
 
     SESSION_FILE.write_text(json.dumps(session, indent=2, ensure_ascii=False))
