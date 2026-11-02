@@ -1,4 +1,4 @@
-# Bankposteringer fra Danske Bank
+# Bankposteringer fra private bankkonti
 
 Et lille Python-projekt til manuelt at hente posteringer og saldi fra egne private konti i via [Enable Banking](https://enablebanking.com/).
 
@@ -8,7 +8,7 @@ Data gemmes lokalt som JSON med én fil pr. konto og datoperiode. Projektet brug
 
 - Python 3.14 og [uv](https://docs.astral.sh/uv/getting-started/installation/).
 - En konto hos Enable Banking og en produktionsapplikation med adgang til dine egne konti.
-- MitID og adgang til de relevante konti i Danske Bank.
+- MitID og adgang til de relevante konti i din bank
 - En browser til at godkende bankadgangen.
 
 ## Installation
@@ -59,7 +59,7 @@ Application ID identificerer applikationen; det er ikke en hemmelig API-nøgle. 
 
 ### 3. Aktivér adgang til egne konti
 
-Klik **Activate by linking accounts** på applikationen i Control Panel, vælg Danske Bank, og godkend med MitID.
+Klik **Activate by linking accounts** på applikationen i Control Panel, vælg din bank og godkend med MitID.
 
 Enable Banking beskriver denne mulighed som *restricted mode* til blandt andet individuel, ikke-kommerciel brug. Appen kan kun hente data fra de konti, der er linket til den. Se de aktuelle [regler for linking af egne konti](https://enablebanking.com/docs/api/linked-accounts/) og Enable Bankings vilkår.
 
