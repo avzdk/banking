@@ -181,7 +181,6 @@ banking/
 
 ## Dokumentation
 
-- [Projektplan](./docs/plan.md)
 - [Datamodel](./docs/datamodel.md)
 - [Enable Banking API-reference](https://enablebanking.com/docs/api/reference/)
 - [Aktivering med egne konti](https://enablebanking.com/docs/api/linked-accounts/)
