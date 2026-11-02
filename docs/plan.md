@@ -106,6 +106,7 @@ Når scriptet melder, at sessionen ikke længere er gyldig, kør `uv run authori
 
 ## Referencer
 
+- Datamodel for JSON-output: [datamodel.md](./datamodel.md)
 - API-reference: <https://enablebanking.com/docs/api/reference/>
 - Whitelisting af egne konti: <https://enablebanking.com/docs/api/linked-accounts/>
 - Kodeeksempler (inkl. Python): <https://github.com/enablebanking/enablebanking-api-samples>
